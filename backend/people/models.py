@@ -19,17 +19,17 @@ def normalize_name(name: str) -> str:
 
 
 class ConsentStatus(models.TextChoices):
-    GIVEN = "given", "Eingewilligt"
-    REVOKED = "revoked", "Widerrufen"
-    UNCLEAR = "unclear", "Unklar"
+    GIVEN = "given", "Given"
+    REVOKED = "revoked", "Revoked"
+    UNCLEAR = "unclear", "Unclear"
 
 
 class SeniorityLevel(models.TextChoices):
     C_LEVEL = "c_level", "C-Level"
     SENIOR_EXECUTIVE = "senior_executive", "Senior Executive"
     MANAGEMENT = "management", "Management"
-    STAFF = "staff", "Mitarbeiter"
-    OTHER = "other", "Sonstige"
+    STAFF = "staff", "Staff"
+    OTHER = "other", "Other"
 
 
 class Person(models.Model):
@@ -128,10 +128,10 @@ class PersonEmail(models.Model):
 
 
 class DuplicateCandidateStatus(models.TextChoices):
-    PENDING = "pending", "Offen"
-    CONFIRMED = "confirmed", "Bestätigt (zusammengeführt)"
-    REJECTED = "rejected", "Abgelehnt (kein Duplikat)"
-    OBSOLETE = "obsolete", "Hinfällig"
+    PENDING = "pending", "Pending"
+    CONFIRMED = "confirmed", "Confirmed (merged)"
+    REJECTED = "rejected", "Rejected (not a duplicate)"
+    OBSOLETE = "obsolete", "Obsolete"
 
 
 class DuplicateCandidate(models.Model):
@@ -159,6 +159,7 @@ class DuplicateCandidate(models.Model):
 
     class Meta:
         ordering = ["-confidence_score", "-detected_at"]
+        verbose_name_plural = "Duplicates"
         constraints = [
             models.UniqueConstraint(
                 fields=["person_a", "person_b"], name="unique_duplicate_pair"
@@ -197,6 +198,7 @@ class PersonMergeLog(models.Model):
 
     class Meta:
         ordering = ["-performed_at"]
+        verbose_name_plural = "Merge log"
 
     def __str__(self):
         return f"Merge {self.source_person_id} -> {self.target_person_id}"

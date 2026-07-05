@@ -22,7 +22,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         count = scan_all_for_duplicates(threshold=options["threshold"])
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Scan abgeschlossen: {count} Duplikat-Kandidat(en) erstellt/aktualisiert."
-            )
+            self.style.SUCCESS(f"Scan complete: {count} duplicate candidate(s) created/updated.")
         )

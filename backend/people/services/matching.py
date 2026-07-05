@@ -43,12 +43,12 @@ def score_pair(person_a: Person, person_b: Person) -> MatchResult | None:
     if name_score < MINIMUM_NAME_SIMILARITY:
         return None
 
-    reasons = [f"Namensähnlichkeit: {round(name_score)}%"]
+    reasons = [f"Name similarity: {round(name_score)}%"]
     bonus = 0
 
     if _shared_email_domains(person_a, person_b):
         bonus += EMAIL_DOMAIN_BONUS
-        reasons.append("gemeinsame E-Mail-Domain (nicht öffentlicher Anbieter)")
+        reasons.append("shared email domain (not a generic provider)")
 
     if person_a.organization and person_b.organization:
         org_score = fuzz.token_sort_ratio(
@@ -56,7 +56,7 @@ def score_pair(person_a: Person, person_b: Person) -> MatchResult | None:
         )
         if org_score >= ORGANIZATION_FUZZY_THRESHOLD:
             bonus += ORGANIZATION_BONUS
-            reasons.append("gleiche Organisation")
+            reasons.append("matching organization")
 
     score = min(100, round(name_score + bonus))
     return MatchResult(score=score, reasons=reasons)

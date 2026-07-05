@@ -29,7 +29,5 @@ class Command(BaseCommand):
                 person.save(update_fields=["flagged_for_review"])
                 flagged += 1
         self.stdout.write(
-            self.style.SUCCESS(
-                f"{flagged} Person(en) älter als {months} Monate zur Überprüfung markiert."
-            )
+            self.style.SUCCESS(f"{flagged} person(s) older than {months} months flagged for review.")
         )

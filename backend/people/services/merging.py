@@ -2,7 +2,7 @@
 Human-confirmed merge/reject/revert for DuplicateCandidate review.
 
 There is no automatic merge path anywhere in this module - every call here
-is triggered by an explicit human decision (see Modul 1 spec: a false
+is triggered by an explicit human decision (see Module 1 spec: a false
 auto-merge on a VIP/diplomat record is riskier than a visible duplicate).
 """
 
@@ -33,11 +33,11 @@ def merge_persons(
     valid FK target for other modules), and log enough to revert.
     """
     if source.person_id == target.person_id:
-        raise MergeError("Kann eine Person nicht mit sich selbst zusammenführen.")
+        raise MergeError("Cannot merge a person with themselves.")
     if not source.is_active:
-        raise MergeError("Quelldatensatz ist bereits zusammengeführt/inaktiv.")
+        raise MergeError("Source record is already merged/inactive.")
     if not target.is_active:
-        raise MergeError("Zieldatensatz ist bereits zusammengeführt/inaktiv.")
+        raise MergeError("Target record is already merged/inactive.")
 
     moved_emails = []
     target_has_primary = target.emails.filter(is_primary=True).exists()
@@ -105,7 +105,7 @@ def reject_duplicate_candidate(
 def revert_merge(log: PersonMergeLog, performed_by: str) -> PersonMergeLog:
     """Undo a merge: move the recorded emails back, reactivate the source."""
     if log.is_reverted:
-        raise MergeError("Diese Zusammenführung wurde bereits rückgängig gemacht.")
+        raise MergeError("This merge has already been reverted.")
 
     source = log.source_person
     target = log.target_person

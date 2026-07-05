@@ -33,7 +33,7 @@ class ScorePairTests(TestCase):
         make_email(b, "j.doe@acme-corp.com")
         result = score_pair(a, b)
         self.assertIsNotNone(result)
-        self.assertTrue(any("Domain" in reason for reason in result.reasons))
+        self.assertTrue(any("domain" in reason for reason in result.reasons))
 
     def test_shared_generic_public_domain_is_not_a_signal(self):
         a = make_person(display_name="Jane Doe")
@@ -42,14 +42,14 @@ class ScorePairTests(TestCase):
         make_email(b, "jane.doh@gmail.com")
         result = score_pair(a, b)
         self.assertIsNotNone(result)
-        self.assertFalse(any("Domain" in reason for reason in result.reasons))
+        self.assertFalse(any("domain" in reason for reason in result.reasons))
 
     def test_matching_organization_boosts_score(self):
         a = make_person(display_name="Jane Doe", organization="Acme Corporation")
         b = make_person(display_name="Jane Doh", organization="Acme Corporation")
         result = score_pair(a, b)
         self.assertIsNotNone(result)
-        self.assertTrue(any("Organisation" in reason for reason in result.reasons))
+        self.assertTrue(any("organization" in reason for reason in result.reasons))
 
 
 class DuplicateCandidateCreationTests(TestCase):

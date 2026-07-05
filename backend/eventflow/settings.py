@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "people",
+    "events",
+    "nominations",
+    "invitations",
 ]
 
 MIDDLEWARE = [
@@ -129,5 +132,5 @@ REST_FRAMEWORK = {
 # DuplicateCandidate that a human must confirm or reject.
 GOLDEN_RECORD_DUPLICATE_THRESHOLD = env.int("GOLDEN_RECORD_DUPLICATE_THRESHOLD", default=75)
 
-# Months after which an unverified Person is flagged "zur Überprüfung".
+# Months after which an unverified Person is flagged for review.
 GOLDEN_RECORD_STALE_MONTHS = env.int("GOLDEN_RECORD_STALE_MONTHS", default=18)
