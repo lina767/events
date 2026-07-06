@@ -3,15 +3,24 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from people.models import DuplicateCandidate, DuplicateCandidateStatus, Person, PersonMergeLog
+from people.models import (
+    DuplicateCandidate,
+    DuplicateCandidateStatus,
+    Person,
+    PersonDeletionLog,
+    PersonMergeLog,
+)
 from people.serializers import (
     ConfirmDuplicateSerializer,
     DuplicateCandidateSerializer,
+    ErasePersonSerializer,
     PersonCreateSerializer,
+    PersonDeletionLogSerializer,
     PersonMergeLogSerializer,
     PersonSerializer,
     RejectDuplicateSerializer,
 )
+from people.services.deletion import DeletionError, erase_person
 from people.services.merging import (
     MergeError,
     merge_persons,
@@ -52,6 +61,19 @@ class PersonViewSet(viewsets.ModelViewSet):
         person.last_verified_at = timezone.now()
         person.flagged_for_review = False
         person.save(update_fields=["last_verified_at", "flagged_for_review"])
+        return Response(PersonSerializer(person).data)
+
+    @action(detail=True, methods=["post"], url_path="erase")
+    def erase(self, request, pk=None):
+        """Execute a deletion/right-to-erasure request against this Person."""
+        person = self.get_object()
+        serializer = ErasePersonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            erase_person(person, **serializer.validated_data)
+        except DeletionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        person.refresh_from_db()
         return Response(PersonSerializer(person).data)
 
 
@@ -122,3 +144,8 @@ class PersonMergeLogViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         log.refresh_from_db()
         return Response(PersonMergeLogSerializer(log).data)
+
+
+class PersonDeletionLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PersonDeletionLog.objects.select_related("person")
+    serializer_class = PersonDeletionLogSerializer

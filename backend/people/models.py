@@ -72,6 +72,11 @@ class Person(models.Model):
     )
     flagged_for_review = models.BooleanField(default=False)
 
+    # Set once a deletion request has been executed (see PersonDeletionLog).
+    # The row survives as a tombstone - other modules' FKs to person_id must
+    # keep resolving - but its personal data has been scrubbed.
+    is_deleted = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -206,3 +211,29 @@ class PersonMergeLog(models.Model):
     @property
     def is_reverted(self) -> bool:
         return self.reverted_at is not None
+
+
+class PersonDeletionLog(models.Model):
+    """
+    Audit trail for executed erasure requests. The Person row is never
+    hard-deleted - person_id must stay a stable FK target for every other
+    module's historical records - it's anonymized in place, and this log
+    is what makes that anonymization accountable: who asked, who did it,
+    when, and the documented retention/deletion rationale the privacy
+    section of the spec requires instead of "we never cleaned up."
+    """
+
+    person = models.ForeignKey(Person, on_delete=models.PROTECT, related_name="deletion_logs")
+    requested_by = models.CharField(
+        max_length=255, blank=True, help_text="The data subject, or whoever raised the request."
+    )
+    performed_by = models.CharField(max_length=255)
+    reason = models.TextField(blank=True)
+    performed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-performed_at"]
+        verbose_name_plural = "Deletion log"
+
+    def __str__(self):
+        return f"Deletion of {self.person_id} by {self.performed_by}"

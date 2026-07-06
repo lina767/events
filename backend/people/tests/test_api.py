@@ -46,6 +46,34 @@ class PersonApiTests(APITestCase):
         self.assertFalse(person.flagged_for_review)
         self.assertIsNotNone(person.last_verified_at)
 
+    def test_erase_endpoint_scrubs_and_logs(self):
+        person = make_person(display_name="Jane Doe")
+
+        response = self.client.post(
+            f"/api/people/{person.person_id}/erase/",
+            {"performed_by": "dpo@example.com", "reason": "GDPR request"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["is_deleted"])
+        self.assertEqual(response.data["display_name"], "Deleted person")
+
+        log_response = self.client.get("/api/deletion-logs/")
+        self.assertEqual(log_response.data["count"], 1)
+
+    def test_erase_endpoint_rejects_double_erasure(self):
+        person = make_person(display_name="Jane Doe")
+        self.client.post(
+            f"/api/people/{person.person_id}/erase/", {"performed_by": "dpo@example.com"}, format="json"
+        )
+
+        response = self.client.post(
+            f"/api/people/{person.person_id}/erase/", {"performed_by": "dpo@example.com"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+
 
 class DuplicateCandidateApiTests(APITestCase):
     def _make_candidate(self):

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from people.models import DuplicateCandidate, Person, PersonEmail, PersonMergeLog
+from people.models import DuplicateCandidate, Person, PersonDeletionLog, PersonEmail, PersonMergeLog
 
 
 class PersonEmailSerializer(serializers.ModelSerializer):
@@ -26,11 +26,12 @@ class PersonSerializer(serializers.ModelSerializer):
             "is_active",
             "merged_into",
             "flagged_for_review",
+            "is_deleted",
             "emails",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["is_active", "merged_into", "flagged_for_review"]
+        read_only_fields = ["is_active", "merged_into", "flagged_for_review", "is_deleted"]
 
 
 class PersonCreateSerializer(serializers.ModelSerializer):
@@ -108,4 +109,17 @@ class PersonMergeLogSerializer(serializers.ModelSerializer):
             "reverted_at",
             "reverted_by",
         ]
+        read_only_fields = fields
+
+
+class ErasePersonSerializer(serializers.Serializer):
+    performed_by = serializers.CharField(max_length=255)
+    requested_by = serializers.CharField(required=False, allow_blank=True, default="")
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class PersonDeletionLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PersonDeletionLog
+        fields = ["id", "person", "requested_by", "performed_by", "reason", "performed_at"]
         read_only_fields = fields

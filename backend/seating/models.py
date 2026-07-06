@@ -83,6 +83,9 @@ class SeatingWeights(models.Model):
     seniority_balance = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("1.00"))
     relationship_bonus = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("1.00"))
 
+    class Meta:
+        verbose_name_plural = "Seating weights"
+
     def __str__(self):
         return f"Seating weights for {self.event}"
 

@@ -73,6 +73,16 @@ API root: http://localhost:8000/api/
 - Every merge is logged in **Admin > People > Merge log** with enough
   detail (which emails moved) to revert it, or via
   `POST /api/merge-logs/{id}/revert/`.
+- **Deletion requests**: the spec's privacy section calls this mandatory
+  regardless of otherwise-unlimited retention. `POST
+  /api/people/{id}/erase/` (`performed_by`, `requested_by`, `reason`)
+  scrubs a Person's personal data (name, organization, sector tags,
+  emails) and flips `is_deleted` - the row itself survives as a
+  tombstone, since every other module's foreign keys to `person_id` must
+  keep resolving. Every erasure is logged in `PersonDeletionLog`
+  (**Admin > People > Deletion log**) with who requested it, who executed
+  it, and why - the documented rationale the spec asks for instead of
+  "we never cleaned up."
 
 ## Module 2 - Nomination & Approval
 

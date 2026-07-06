@@ -5,9 +5,11 @@ from people.models import (
     DuplicateCandidate,
     DuplicateCandidateStatus,
     Person,
+    PersonDeletionLog,
     PersonEmail,
     PersonMergeLog,
 )
+from people.services.deletion import erase_person
 from people.services.merging import merge_persons, reject_duplicate_candidate, revert_merge
 
 
@@ -27,16 +29,35 @@ class PersonAdmin(admin.ModelAdmin):
         "flagged_for_review",
         "last_verified_at",
     )
-    list_filter = ("is_active", "flagged_for_review", "consent_status", "seniority_level")
+    list_filter = (
+        "is_active",
+        "is_deleted",
+        "flagged_for_review",
+        "consent_status",
+        "seniority_level",
+    )
     search_fields = ("display_name", "normalized_name", "organization")
-    readonly_fields = ("person_id", "normalized_name", "created_at", "updated_at")
+    readonly_fields = ("person_id", "normalized_name", "is_deleted", "created_at", "updated_at")
     inlines = [PersonEmailInline]
-    actions = ["mark_verified"]
+    actions = ["mark_verified", "erase_selected"]
 
     @admin.action(description="Mark as recently verified")
     def mark_verified(self, request, queryset):
         updated = queryset.update(last_verified_at=timezone.now(), flagged_for_review=False)
         self.message_user(request, f"{updated} person(s) marked as verified.")
+
+    @admin.action(description="Erase (execute a deletion request)")
+    def erase_selected(self, request, queryset):
+        performed_by = request.user.get_username()
+        erased = 0
+        for person in queryset.filter(is_deleted=False):
+            erase_person(person, performed_by=performed_by)
+            erased += 1
+        self.message_user(
+            request,
+            f"{erased} person(s) erased. Add the request rationale in "
+            f"Admin > People > Deletion log.",
+        )
 
 
 @admin.register(DuplicateCandidate)
@@ -109,3 +130,12 @@ class PersonMergeLogAdmin(admin.ModelAdmin):
         for log in reverted:
             revert_merge(log, performed_by)
         self.message_user(request, f"{len(reverted)} merge(s) reverted.")
+
+
+@admin.register(PersonDeletionLog)
+class PersonDeletionLogAdmin(admin.ModelAdmin):
+    list_display = ("person", "requested_by", "performed_by", "performed_at")
+    readonly_fields = ("person", "performed_by", "performed_at")
+
+    def has_add_permission(self, request):
+        return False

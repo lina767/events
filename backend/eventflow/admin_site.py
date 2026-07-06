@@ -8,7 +8,7 @@ than being scattered by model name.
 from django.contrib import admin
 
 MODEL_ORDER = {
-    "people": ["Person", "DuplicateCandidate", "PersonMergeLog"],
+    "people": ["Person", "DuplicateCandidate", "PersonMergeLog", "PersonDeletionLog"],
 }
 
 _default_get_app_list = admin.AdminSite.get_app_list
