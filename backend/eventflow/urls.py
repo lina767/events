@@ -9,4 +9,6 @@ urlpatterns = [
     path("api/", include("events.urls")),
     path("api/", include("nominations.urls")),
     path("api/", include("invitations.urls")),
+    path("api/", include("schedule.urls")),
+    path("api/", include("seating.urls")),
 ]

@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "events",
     "nominations",
     "invitations",
+    "schedule",
+    "seating",
 ]
 
 MIDDLEWARE = [
@@ -134,3 +136,7 @@ GOLDEN_RECORD_DUPLICATE_THRESHOLD = env.int("GOLDEN_RECORD_DUPLICATE_THRESHOLD",
 
 # Months after which an unverified Person is flagged for review.
 GOLDEN_RECORD_STALE_MONTHS = env.int("GOLDEN_RECORD_STALE_MONTHS", default=18)
+
+# Minutes since a session was last confirmed before the traffic light turns
+# gray ("might have shifted") instead of showing a stale time as certain.
+SCHEDULE_STALE_MINUTES = env.int("SCHEDULE_STALE_MINUTES", default=20)

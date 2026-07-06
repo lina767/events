@@ -19,7 +19,8 @@ def current_status(person: Person, event: Event) -> str | None:
     return latest.event_type if latest else None
 
 
-def _latest_invitation_event_ids(event: Event):
+def latest_invitation_event_ids(event: Event):
+    """The id of each person's most recent InvitationEvent for this event."""
     return (
         InvitationEvent.objects.filter(event=event)
         .values("person")
@@ -28,10 +29,23 @@ def _latest_invitation_event_ids(event: Event):
     )
 
 
+def attendees_with_status(event: Event, statuses: list[str]):
+    """Active Persons whose current status for this event is one of `statuses`."""
+    person_ids = InvitationEvent.objects.filter(
+        id__in=latest_invitation_event_ids(event), event_type__in=statuses
+    ).values_list("person_id", flat=True)
+    return Person.objects.filter(person_id__in=person_ids, is_active=True)
+
+
+def accepted_attendees(event: Event):
+    """Guests who have actually accepted - the pool schedule/networking and seating draw from."""
+    return attendees_with_status(event, [InvitationEventType.ACCEPTED])
+
+
 def accepted_count(event: Event) -> int:
     """How many people currently have ACCEPTED as their latest status."""
     return InvitationEvent.objects.filter(
-        id__in=_latest_invitation_event_ids(event), event_type=InvitationEventType.ACCEPTED
+        id__in=latest_invitation_event_ids(event), event_type=InvitationEventType.ACCEPTED
     ).count()
 
 

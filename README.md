@@ -13,17 +13,27 @@ This repo currently implements:
   capacity math, waitlist promotion suggestions, bilingual (EN/DE) email
   reply classification, and bulk Excel import that reuses Golden Record
   dedup instead of exact-email matching.
+- **Module 4: Seating Engine** (`seating`) - simulated annealing with a
+  warm start over tables, hard-constraint/relationship scoring,
+  human-confirmable proposals, and local reoptimization scoped to the
+  table(s) a change actually touched.
+- **Module 5: Live Schedule** (`schedule`) - the EventMobi replacement:
+  an honest traffic-light schedule, a no-login per-room update page,
+  personal agenda, networking search over the Golden Record, and polling
+  based announcements.
 - `events` - the shared `Event` model (capacity, category, historical
-  show rate) both of the above build on.
+  show rate) every module above builds on.
 
-Not yet built: the seating engine (Module 4) and the live-schedule /
-EventMobi replacement (Module 5).
+All five modules from the original spec are now implemented.
 
 ## Stack
 
 Django + Django REST Framework, Postgres. The seating engine (Module 4)
-will run as a separate Python worker; a React/Vite frontend is not part of
-this slice yet - the Django admin is the only UI right now.
+runs synchronously in-process here; the spec's separate-Python-worker
+design (triggered by a job queue) is the natural next step once seating
+runs at real conference scale, but isn't wired up in this repo. A
+React/Vite frontend is not part of this slice yet - the Django admin and
+the raw API are the only UI right now.
 
 ## Local setup
 
@@ -108,6 +118,55 @@ API root: http://localhost:8000/api/
 - `StandbyContact` (**Admin > Invitations > Standby contacts**) is the
   visible day-of-event escalation list for last-minute cancellations -
   intentionally not automated, just made visible.
+
+## Module 4 - Seating Engine
+
+- `POST /api/seating/assignments/optimize/` (`event`, `iterations`,
+  `seed`) runs a full simulated-annealing pass over every `Table` for the
+  event's accepted attendees, warm-started from any existing
+  `TableAssignment` rows - never from an empty room.
+- Score per table: `w1*sector_diversity + w2*seniority_balance +
+  w3*relationship_bonus - LARGE_PENALTY*hard_exclusion_violations`,
+  weights configurable per event via `SeatingWeights` (equal by default).
+  `RelationshipEdge` pairs are either a soft "should sit together" bonus
+  or, when `is_hard_constraint=True`, a hard "must sit together"
+  (positive) or "must not" (negative) rule.
+- `SeatPin` fixes a specific person's table for an event, overriding the
+  optimizer for them - set/cleared via
+  `POST /api/seating/assignments/pin/` and `/unpin/`.
+- `POST /api/seating/assignments/reoptimize-local/`
+  (`changed_person_ids`) is the response to a decline/promotion: it only
+  touches the table(s) that lost/gained a guest plus up to two
+  lowest-capacity neighbors, not a global re-run over every table.
+- Every assignment starts with `is_confirmed=False` and a plain-language
+  `rationale` (e.g. "high sector diversity, moderate seniority mix").
+  Nothing is communicated to guests until
+  `POST /api/seating/assignments/confirm/` - and a later reoptimization
+  reopens confirmation for whatever it touched.
+
+## Module 5 - Live Schedule
+
+- `Session.status` (`confirmed`/`delayed`/`running`/`cancelled`) plus
+  `last_confirmed_at` drive an honest traffic light
+  (`schedule.services.traffic_light`): green only while recently
+  confirmed, yellow when delayed, and gray once confirmation goes stale
+  (`SCHEDULE_STALE_MINUTES`, default 20) - a stale time is never shown as
+  if it were still certain.
+- Each `Room` has an unguessable `update_token` instead of a login:
+  `GET /api/schedule/rooms/<token>/status/` shows just the current and
+  next session, and `POST .../update/` applies one of the one-tap actions
+  (`confirm`, `delay_10`, `delay_30`, `running`, `cancelled`) - the
+  response includes subsequent sessions in the room as shift candidates,
+  confirmed via `POST .../apply-shift/`, never forced automatically.
+- Personal agenda (`PersonalAgendaItem`) just bookmarks a `Session` row,
+  so a delay reorders a participant's agenda without any separate sync.
+- Networking reuses the Golden Record directly - `GET
+  /api/schedule/attendees/?event=&q=&sector=` searches accepted attendees'
+  name/organization/sector tags, no separate profile model.
+- `GET /api/schedule/announcements/feed/?event=&sector=` is the polling
+  endpoint participants hit every 15-30s for both schedule and
+  announcements; a targeted announcement (`audience_sector_tag`) only
+  reaches its own track, never everyone.
 
 ## Tests
 
